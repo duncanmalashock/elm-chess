@@ -1,0 +1,156 @@
+module Position exposing
+    ( defaultSetup
+    , init
+    )
+
+import Piece
+import Player
+import Set.Any
+import Square
+
+
+type Position
+    = Position PositionDetails
+
+
+type alias PositionDetails =
+    { pieces : List Piece.Piece
+    , initialSetup : List Piece.Piece
+    , playerToMove : Player.Player
+    , movesLeftUntilDraw : Int
+    , enPassantSquare : Maybe Square.Square
+    , castlingRights : Set.Any.AnySet Int Player.Player
+    , error : Maybe Error
+    }
+
+
+possibleMoves : Position -> List Move
+possibleMoves ((Position details) as thePosition) =
+    List.concatMap (pieceMoves thePosition) details.pieces
+
+
+pieceMoves : Position -> Piece.Piece -> List Move
+pieceMoves thePosition thePiece =
+    case Piece.square thePiece of
+        Just startingSquare ->
+            List.filterMap
+                (\rule -> moveFromMovementRule thePiece startingSquare rule)
+                (Piece.movementRules thePiece)
+
+        Nothing ->
+            []
+
+
+moveFromMovementRule : Piece.Piece -> Square.Square -> Piece.MovementRule -> Maybe Move
+moveFromMovementRule thePiece startingSquare movementRule =
+    case movementRule of
+        Piece.MoveRule { stoppedByInterveningPieces } steps ->
+            applySteps thePiece startingSquare steps
+
+        Piece.CaptureRule { stoppedByInterveningPieces } steps ->
+            applySteps thePiece startingSquare steps
+
+
+applySteps : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
+applySteps thePiece startingSquare steps =
+    List.foldl
+        (\step maybeSquare ->
+            Maybe.andThen (Square.applyStep step) maybeSquare
+        )
+        (Just startingSquare)
+        steps
+        |> Maybe.map
+            (\endingSquare ->
+                Move thePiece
+                    { from = startingSquare
+                    , to = endingSquare
+                    }
+            )
+
+
+type Error
+    = IllegalMoveError Move IllegalMoveReason
+
+
+type IllegalMoveReason
+    = LeavesKingInCheck
+    | PlacesKingInCheck
+    | IncorrectPieceMovement
+    | IncorrectPieceSpecified
+    | NotCurrentPlayersPiece
+
+
+type Move
+    = Move Piece.Piece { from : Square.Square, to : Square.Square }
+
+
+playMove : Move -> Position -> Position
+playMove theMove thePosition =
+    thePosition
+
+
+init : List Piece.Piece -> Position
+init initialSetup =
+    Position
+        { pieces = initialSetup
+        , initialSetup = initialSetup
+        , playerToMove = Player.White
+        , movesLeftUntilDraw = 50
+        , enPassantSquare = Nothing
+        , castlingRights = Set.Any.fromList Player.playerToInt [ Player.White, Player.Black ]
+        , error = Nothing
+        }
+
+
+defaultSetup : List Piece.Piece
+defaultSetup =
+    List.concat
+        [ initPawns Player.Black
+        , initPawns Player.White
+        , initPieces Player.Black
+        , initPieces Player.White
+        ]
+
+
+initPawns : Player.Player -> List Piece.Piece
+initPawns player =
+    let
+        rank =
+            case player of
+                Player.White ->
+                    Square.two
+
+                Player.Black ->
+                    Square.seven
+    in
+    [ Piece.pawn player (Square.square Square.a rank)
+    , Piece.pawn player (Square.square Square.b rank)
+    , Piece.pawn player (Square.square Square.c rank)
+    , Piece.pawn player (Square.square Square.d rank)
+    , Piece.pawn player (Square.square Square.e rank)
+    , Piece.pawn player (Square.square Square.f rank)
+    , Piece.pawn player (Square.square Square.g rank)
+    , Piece.pawn player (Square.square Square.h rank)
+    ]
+
+
+initPieces : Player.Player -> List Piece.Piece
+initPieces player =
+    let
+        rank =
+            case player of
+                Player.White ->
+                    Square.one
+
+                Player.Black ->
+                    Square.eight
+    in
+    [ Piece.rook player (Square.square Square.a rank)
+    , Piece.knight player (Square.square Square.b rank)
+    , Piece.bishop player (Square.square Square.c rank)
+    , Piece.king player (Square.square Square.d rank)
+    , Piece.queen player (Square.square Square.e rank)
+    , Piece.bishop player (Square.square Square.f rank)
+    , Piece.knight player (Square.square Square.g rank)
+    , Piece.rook player (Square.square Square.h rank)
+    ]
