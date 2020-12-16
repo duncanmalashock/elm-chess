@@ -14,7 +14,7 @@ module Square exposing
     , Step
     , north, south, east, west
     , northeast, northwest, southeast, southwest
-    , applyStep
+    , allFiles, allOnFile, allOnRank, allRanks, applyStep
     )
 
 {-|
@@ -49,6 +49,34 @@ type Step
     | Northeast
     | Southwest
     | Southeast
+
+
+allFiles : List File
+allFiles =
+    [ a, b, c, d, e, f, g, h ]
+
+
+allRanks : List Rank
+allRanks =
+    [ one
+    , two
+    , three
+    , four
+    , five
+    , six
+    , seven
+    , eight
+    ]
+
+
+allOnFile : File -> List Square
+allOnFile file =
+    List.map (\rank -> square file rank) allRanks
+
+
+allOnRank : Rank -> List Square
+allOnRank rank =
+    List.map (\file -> square file rank) allFiles
 
 
 applyStep : Step -> Square -> Maybe Square

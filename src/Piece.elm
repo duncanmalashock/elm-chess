@@ -2,13 +2,16 @@ module Piece exposing
     ( MovementRule(..)
     , Piece
     , bishop
+    , isAtSquare
     , king
     , knight
     , movementRules
     , pawn
     , queen
     , rook
+    , setSquare
     , square
+    , toString
     )
 
 import Player
@@ -22,6 +25,60 @@ type Piece
 square : Piece -> Maybe Square.Square
 square (Piece _ _ maybeSquare) =
     maybeSquare
+
+
+isAtSquare : Square.Square -> Piece -> Bool
+isAtSquare theSquare thePiece =
+    square thePiece == Just theSquare
+
+
+setSquare : Square.Square -> Piece -> Piece
+setSquare newSquare (Piece thePlayer thePieceType _) =
+    Piece thePlayer thePieceType (Just newSquare)
+
+
+toString : Piece -> String
+toString (Piece thePlayer thePieceType _) =
+    case thePlayer of
+        Player.White ->
+            case thePieceType of
+                Pawn ->
+                    "♙"
+
+                Knight ->
+                    "♘"
+
+                Bishop ->
+                    "♗"
+
+                Rook ->
+                    "♖"
+
+                Queen ->
+                    "♕"
+
+                King ->
+                    "♔"
+
+        Player.Black ->
+            case thePieceType of
+                Pawn ->
+                    "♟"
+
+                Knight ->
+                    "♞"
+
+                Bishop ->
+                    "♝"
+
+                Rook ->
+                    "♜"
+
+                Queen ->
+                    "♛"
+
+                King ->
+                    "♚"
 
 
 type PieceType

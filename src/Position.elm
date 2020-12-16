@@ -1,8 +1,12 @@
 module Position exposing
     ( defaultSetup
     , init
+    , move
+    , toString
+    , tryMove
     )
 
+import List.Extra
 import Piece
 import Player
 import Set.Any
@@ -65,6 +69,7 @@ applySteps thePiece startingSquare steps =
                     { from = startingSquare
                     , to = endingSquare
                     }
+                    steps
             )
 
 
@@ -81,12 +86,56 @@ type IllegalMoveReason
 
 
 type Move
-    = Move Piece.Piece { from : Square.Square, to : Square.Square }
+    = Move Piece.Piece { from : Square.Square, to : Square.Square } (List Square.Step)
 
 
-playMove : Move -> Position -> Position
-playMove theMove thePosition =
-    thePosition
+move : Piece.Piece -> Square.Square -> Maybe Move
+move piece to =
+    case Piece.square piece of
+        Just from ->
+            Just (Move piece { from = from, to = to } [])
+
+        Nothing ->
+            Nothing
+
+
+tryMove : Move -> Position -> Position
+tryMove theMove (Position positionDetails) =
+    case theMove of
+        Move piece { from, to } steps ->
+            { positionDetails
+                | pieces =
+                    List.Extra.setIf
+                        (Piece.isAtSquare from)
+                        (Piece.setSquare to piece)
+                        positionDetails.pieces
+            }
+                |> Position
+
+
+toString : Position -> String
+toString ((Position positionDetails) as thePosition) =
+    List.map
+        (\rank ->
+            List.map
+                (\square ->
+                    pieceAt square thePosition
+                        |> Maybe.map Piece.toString
+                        |> Maybe.withDefault " "
+                )
+                (Square.allOnRank rank)
+                |> String.join ""
+        )
+        (List.reverse Square.allRanks)
+        |> String.join " "
+
+
+pieceAt : Square.Square -> Position -> Maybe Piece.Piece
+pieceAt theSquare (Position positionDetails) =
+    List.filter
+        (Piece.isAtSquare theSquare)
+        positionDetails.pieces
+        |> List.head
 
 
 init : List Piece.Piece -> Position
