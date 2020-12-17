@@ -1,7 +1,9 @@
 module Position exposing
     ( defaultSetup
     , init
+    , legalMoves
     , move
+    , moveToString
     , toString
     , tryMove
     )
@@ -28,9 +30,33 @@ type alias PositionDetails =
     }
 
 
-possibleMoves : Position -> List Move
-possibleMoves ((Position details) as thePosition) =
+legalMoves : Position -> List Move
+legalMoves ((Position details) as thePosition) =
     List.concatMap (pieceMoves thePosition) details.pieces
+        |> List.filter (moveIsLegal thePosition)
+
+
+moveIsLegal : Position -> Move -> Bool
+moveIsLegal thePosition theMove =
+    validateMove thePosition theMove
+        |> (\( _, maybeError ) ->
+                maybeError == Nothing
+           )
+
+
+validateMove : Position -> Move -> ( Position, Maybe Error )
+validateMove ((Position positionDetails) as thePosition) theMove =
+    ( thePosition, Nothing )
+
+
+moveToString : Move -> String
+moveToString theMove =
+    case theMove of
+        Move piece { from, to } steps ->
+            Piece.toString piece
+                ++ Square.toString from
+                ++ "-"
+                ++ Square.toString to
 
 
 pieceMoves : Position -> Piece.Piece -> List Move
@@ -127,7 +153,7 @@ toString ((Position positionDetails) as thePosition) =
                 |> String.join ""
         )
         (List.reverse Square.allRanks)
-        |> String.join " "
+        |> String.join "\n"
 
 
 pieceAt : Square.Square -> Position -> Maybe Piece.Piece

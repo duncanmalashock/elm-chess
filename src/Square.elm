@@ -14,7 +14,7 @@ module Square exposing
     , Step
     , north, south, east, west
     , northeast, northwest, southeast, southwest
-    , allFiles, allOnFile, allOnRank, allRanks, applyStep
+    , allFiles, allOnFile, allOnRank, allRanks, applyStep, toString
     )
 
 {-|
@@ -77,6 +77,67 @@ allOnFile file =
 allOnRank : Rank -> List Square
 allOnRank rank =
     List.map (\file -> square file rank) allFiles
+
+
+toString : Square -> String
+toString (Square file rank) =
+    fileToString file ++ rankToString rank
+
+
+rankToString : Rank -> String
+rankToString rank =
+    case rank of
+        Rank1 ->
+            "1"
+
+        Rank2 ->
+            "2"
+
+        Rank3 ->
+            "3"
+
+        Rank4 ->
+            "4"
+
+        Rank5 ->
+            "5"
+
+        Rank6 ->
+            "6"
+
+        Rank7 ->
+            "7"
+
+        Rank8 ->
+            "8"
+
+
+fileToString : File -> String
+fileToString file =
+    case file of
+        FileA ->
+            "a"
+
+        FileB ->
+            "b"
+
+        FileC ->
+            "c"
+
+        FileD ->
+            "d"
+
+        FileE ->
+            "e"
+
+        FileF ->
+            "f"
+
+        FileG ->
+            "g"
+
+        FileH ->
+            "h"
 
 
 applyStep : Step -> Square -> Maybe Square

@@ -7,6 +7,7 @@ module Piece exposing
     , knight
     , movementRules
     , pawn
+    , player
     , queen
     , rook
     , setSquare
@@ -37,8 +38,35 @@ setSquare newSquare (Piece thePlayer thePieceType _) =
     Piece thePlayer thePieceType (Just newSquare)
 
 
+player : Piece -> Player.Player
+player (Piece thePlayer _ _) =
+    thePlayer
+
+
 toString : Piece -> String
-toString (Piece thePlayer thePieceType _) =
+toString (Piece _ thePieceType _) =
+    case thePieceType of
+        Pawn ->
+            ""
+
+        Knight ->
+            "N"
+
+        Bishop ->
+            "B"
+
+        Rook ->
+            "R"
+
+        Queen ->
+            "Q"
+
+        King ->
+            "K"
+
+
+toSymbol : Piece -> String
+toSymbol (Piece thePlayer thePieceType _) =
     case thePlayer of
         Player.White ->
             case thePieceType of
@@ -210,10 +238,10 @@ knightMoves =
 
 
 movementRules : Piece -> List MovementRule
-movementRules (Piece player pieceType maybeSquare) =
+movementRules (Piece thePlayer pieceType maybeSquare) =
     case pieceType of
         Pawn ->
-            case player of
+            case thePlayer of
                 Player.White ->
                     List.concat
                         [ moveRules
@@ -324,30 +352,30 @@ movementRules (Piece player pieceType maybeSquare) =
 
 
 pawn : Player.Player -> Square.Square -> Piece
-pawn player theSquare =
-    Piece player Pawn (Just theSquare)
+pawn thePlayer theSquare =
+    Piece thePlayer Pawn (Just theSquare)
 
 
 rook : Player.Player -> Square.Square -> Piece
-rook player theSquare =
-    Piece player Rook (Just theSquare)
+rook thePlayer theSquare =
+    Piece thePlayer Rook (Just theSquare)
 
 
 knight : Player.Player -> Square.Square -> Piece
-knight player theSquare =
-    Piece player Knight (Just theSquare)
+knight thePlayer theSquare =
+    Piece thePlayer Knight (Just theSquare)
 
 
 bishop : Player.Player -> Square.Square -> Piece
-bishop player theSquare =
-    Piece player Bishop (Just theSquare)
+bishop thePlayer theSquare =
+    Piece thePlayer Bishop (Just theSquare)
 
 
 king : Player.Player -> Square.Square -> Piece
-king player theSquare =
-    Piece player King (Just theSquare)
+king thePlayer theSquare =
+    Piece thePlayer King (Just theSquare)
 
 
 queen : Player.Player -> Square.Square -> Piece
-queen player theSquare =
-    Piece player Queen (Just theSquare)
+queen thePlayer theSquare =
+    Piece thePlayer Queen (Just theSquare)

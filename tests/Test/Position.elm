@@ -11,34 +11,23 @@ import Test exposing (..)
 
 suite : Test
 suite =
-    describe "a"
-        [ test "aa" <|
-            \_ ->
-                let
-                    expected =
-                        ""
+    describe "Position" <|
+        [ describe "legalMoves"
+            [ test "There should be 20 legal moves from the initial position" <|
+                \_ ->
+                    let
+                        expected =
+                            20
 
-                    result =
-                        let
-                            pawnE4 =
-                                Position.move
-                                    (Piece.pawn Player.White Square.e2)
-                                    Square.e4
-
-                            pawnE5 =
-                                Position.move
-                                    (Piece.pawn Player.Black Square.e7)
-                                    Square.e5
-
-                            setup =
-                                Just (Position.init Position.defaultSetup)
-                        in
-                        setup
-                            |> Maybe.map2 (\theMove -> Position.tryMove theMove) pawnE4
-                            |> Maybe.map2 (\theMove -> Position.tryMove theMove) pawnE5
-                            |> Maybe.map Position.toString
-                            |> Maybe.withDefault ""
-                            |> Debug.log "      "
-                in
-                Expect.equal expected result
+                        result =
+                            let
+                                setup =
+                                    Position.init Position.defaultSetup
+                            in
+                            setup
+                                |> Position.legalMoves
+                                |> List.length
+                    in
+                    Expect.equal expected result
+            ]
         ]
