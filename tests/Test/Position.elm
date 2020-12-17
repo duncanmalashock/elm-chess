@@ -23,7 +23,7 @@ suite =
                                     Position.init Position.defaultSetup
                             in
                             setup
-                                |> Position.legalMoves
+                                |> Position.legalMoves { ignoreTurn = False }
                                 |> List.length
                     in
                     Expect.equal expected result

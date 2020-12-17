@@ -63,7 +63,7 @@ play { from, to } ((Position positionDetails) as thePosition) =
 
 updatePosition : Move.Move -> Position -> Position
 updatePosition theMove ((Position positionDetails) as thePosition) =
-    case validateMove thePosition theMove of
+    case validateMove { ignoreTurn = False } thePosition theMove of
         Nothing ->
             case theMove of
                 Move.Move piece { from, to } _ ->
@@ -103,17 +103,17 @@ findInAllMoves { from, to } ((Position positionDetails) as thePosition) =
         |> List.head
 
 
-legalMoves : Position -> List Move.Move
-legalMoves ((Position positionDetails) as thePosition) =
+legalMoves : { ignoreTurn : Bool } -> Position -> List Move.Move
+legalMoves { ignoreTurn } ((Position positionDetails) as thePosition) =
     List.concatMap Move.movesForPiece positionDetails.pieces
-        |> List.filter (\move -> validateMove thePosition move == Nothing)
+        |> List.filter (\move -> validateMove { ignoreTurn = ignoreTurn } thePosition move == Nothing)
 
 
-validateMove : Position -> Move.Move -> Maybe Error
-validateMove ((Position positionDetails) as thePosition) theMove =
+validateMove : { ignoreTurn : Bool } -> Position -> Move.Move -> Maybe Error
+validateMove { ignoreTurn } ((Position positionDetails) as thePosition) theMove =
     case theMove of
         Move.Move piece { from, to, capture, jumpsAllowed } squaresTraveled ->
-            if Piece.player piece /= positionDetails.playerToMove then
+            if (Piece.player piece /= positionDetails.playerToMove) && not ignoreTurn then
                 Just (IllegalMoveError NotCurrentPlayersPiece)
 
             else
