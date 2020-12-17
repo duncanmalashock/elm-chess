@@ -2,7 +2,6 @@ module Position exposing
     ( defaultSetup
     , init
     , legalMoves
-    , move
     , moveToString
     , toString
     , tryMove
@@ -48,14 +47,14 @@ moveIsLegal thePosition theMove =
 validateMove : Position -> Move -> ( Position, Maybe Error )
 validateMove ((Position positionDetails) as thePosition) theMove =
     case theMove of
-        Move piece record steps ->
+        Move piece { from, to } squaresTraveled ->
             if Piece.player piece /= positionDetails.playerToMove then
                 ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
 
             else
                 case Piece.square piece of
                     Just square ->
-                        if squaresContainPieces (squaresFromSteps steps square) thePosition then
+                        if squaresContainPieces squaresTraveled thePosition then
                             ( thePosition, Just (IllegalMoveError theMove PiecesBlockMovePath) )
 
                         else
@@ -80,7 +79,7 @@ squaresContainPieces squares thePosition =
 moveToString : Move -> String
 moveToString theMove =
     case theMove of
-        Move piece { from, to } steps ->
+        Move piece { from, to } squaresTraveled ->
             Piece.toString piece
                 ++ Square.toString from
                 ++ "-"
@@ -103,10 +102,28 @@ moveFromMovementRule : Piece.Piece -> Square.Square -> Piece.MovementRule -> May
 moveFromMovementRule thePiece startingSquare movementRule =
     case movementRule of
         Piece.MoveRule { stoppedByInterveningPieces } steps ->
-            applySteps thePiece startingSquare steps
+            moveFromMovementRuleHelp thePiece startingSquare steps
 
         Piece.CaptureRule { stoppedByInterveningPieces } steps ->
-            applySteps thePiece startingSquare steps
+            moveFromMovementRuleHelp thePiece startingSquare steps
+
+
+moveFromMovementRuleHelp : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
+moveFromMovementRuleHelp thePiece startingSquare steps =
+    List.foldl
+        (\step maybeSquare ->
+            Maybe.andThen (Square.applyStep step) maybeSquare
+        )
+        (Just startingSquare)
+        steps
+        |> Maybe.map
+            (\endingSquare ->
+                Move thePiece
+                    { from = startingSquare
+                    , to = endingSquare
+                    }
+                    (squaresFromSteps steps startingSquare)
+            )
 
 
 squaresFromSteps : List Square.Step -> Square.Square -> List Square.Square
@@ -137,24 +154,6 @@ squaresFromStepsHelp steps startingSquare outputSquaresSoFar =
                 newOutputSquaresSoFar
 
 
-applySteps : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
-applySteps thePiece startingSquare steps =
-    List.foldl
-        (\step maybeSquare ->
-            Maybe.andThen (Square.applyStep step) maybeSquare
-        )
-        (Just startingSquare)
-        steps
-        |> Maybe.map
-            (\endingSquare ->
-                Move thePiece
-                    { from = startingSquare
-                    , to = endingSquare
-                    }
-                    steps
-            )
-
-
 type Error
     = IllegalMoveError Move IllegalMoveReason
 
@@ -166,23 +165,13 @@ type IllegalMoveReason
 
 
 type Move
-    = Move Piece.Piece { from : Square.Square, to : Square.Square } (List Square.Step)
-
-
-move : Piece.Piece -> Square.Square -> Maybe Move
-move piece to =
-    case Piece.square piece of
-        Just from ->
-            Just (Move piece { from = from, to = to } [])
-
-        Nothing ->
-            Nothing
+    = Move Piece.Piece { from : Square.Square, to : Square.Square } (List Square.Square)
 
 
 tryMove : Move -> Position -> Position
 tryMove theMove (Position positionDetails) =
     case theMove of
-        Move piece { from, to } steps ->
+        Move piece { from, to } squaresTraveled ->
             { positionDetails
                 | pieces =
                     List.Extra.setIf
