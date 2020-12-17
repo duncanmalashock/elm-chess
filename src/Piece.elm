@@ -1,12 +1,14 @@
 module Piece exposing
     ( MovementRule(..)
     , Piece
+    , PieceType(..)
     , bishop
     , isAtSquare
     , king
     , knight
     , movementRules
     , pawn
+    , pieceType
     , player
     , queen
     , rook
@@ -21,6 +23,13 @@ import Square
 
 type Piece
     = Piece Player.Player PieceType (Maybe Square.Square)
+
+
+pieceType : Piece -> PieceType
+pieceType thePiece =
+    case thePiece of
+        Piece _ thePieceType _ ->
+            thePieceType
 
 
 square : Piece -> Maybe Square.Square
@@ -238,8 +247,8 @@ knightMoves =
 
 
 movementRules : Piece -> List MovementRule
-movementRules (Piece thePlayer pieceType maybeSquare) =
-    case pieceType of
+movementRules (Piece thePlayer thePieceType maybeSquare) =
+    case thePieceType of
         Pawn ->
             case thePlayer of
                 Player.White ->
@@ -257,7 +266,8 @@ movementRules (Piece thePlayer pieceType maybeSquare) =
                             { stoppedByInterveningPieces = True
                             }
                             [ [ Square.northwest
-                              , Square.northeast
+                              ]
+                            , [ Square.northeast
                               ]
                             ]
                         ]

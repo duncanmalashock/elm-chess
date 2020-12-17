@@ -2,13 +2,13 @@ module Position exposing
     ( defaultSetup
     , init
     , legalMoves
-    , moveToString
     , toString
     , tryMove
     )
 
 import List.Extra
 import Maybe.Extra
+import Move
 import Piece
 import Player
 import Set.Any
@@ -30,13 +30,13 @@ type alias PositionDetails =
     }
 
 
-legalMoves : Position -> List Move
+legalMoves : Position -> List Move.Move
 legalMoves ((Position details) as thePosition) =
-    List.concatMap (pieceMoves thePosition) details.pieces
+    List.concatMap Move.movesForPiece details.pieces
         |> List.filter (moveIsLegal thePosition)
 
 
-moveIsLegal : Position -> Move -> Bool
+moveIsLegal : Position -> Move.Move -> Bool
 moveIsLegal thePosition theMove =
     validateMove thePosition theMove
         |> (\( _, maybeError ) ->
@@ -44,24 +44,33 @@ moveIsLegal thePosition theMove =
            )
 
 
-validateMove : Position -> Move -> ( Position, Maybe Error )
+validateMove : Position -> Move.Move -> ( Position, Maybe Error )
 validateMove ((Position positionDetails) as thePosition) theMove =
     case theMove of
-        Move piece { from, to } squaresTraveled ->
+        Move.Move piece { from, to } squaresTraveled ->
             if Piece.player piece /= positionDetails.playerToMove then
                 ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
 
             else
                 case Piece.square piece of
+                    Nothing ->
+                        ( thePosition, Just (IllegalMoveError theMove PieceNotOnBoard) )
+
                     Just square ->
-                        if squaresContainPieces squaresTraveled thePosition then
+                        if squaresContainPieces (List.filterMap identity squaresTraveled) thePosition then
                             ( thePosition, Just (IllegalMoveError theMove PiecesBlockMovePath) )
+
+                        else if moveGoesOffBoard squaresTraveled then
+                            ( thePosition, Just (IllegalMoveError theMove MoveGoesOffBoard) )
 
                         else
                             ( thePosition, Nothing )
 
-                    Nothing ->
-                        ( thePosition, Just (IllegalMoveError theMove PieceNotOnBoard) )
+
+moveGoesOffBoard : List (Maybe Square.Square) -> Bool
+moveGoesOffBoard maybeSquares =
+    maybeSquares
+        |> List.any Maybe.Extra.isNothing
 
 
 squaresContainPieces : List Square.Square -> Position -> Bool
@@ -76,102 +85,21 @@ squaresContainPieces squares thePosition =
         |> not
 
 
-moveToString : Move -> String
-moveToString theMove =
-    case theMove of
-        Move piece { from, to } squaresTraveled ->
-            Piece.toString piece
-                ++ Square.toString from
-                ++ "-"
-                ++ Square.toString to
-
-
-pieceMoves : Position -> Piece.Piece -> List Move
-pieceMoves thePosition thePiece =
-    case Piece.square thePiece of
-        Just startingSquare ->
-            List.filterMap
-                (\rule -> moveFromMovementRule thePiece startingSquare rule)
-                (Piece.movementRules thePiece)
-
-        Nothing ->
-            []
-
-
-moveFromMovementRule : Piece.Piece -> Square.Square -> Piece.MovementRule -> Maybe Move
-moveFromMovementRule thePiece startingSquare movementRule =
-    case movementRule of
-        Piece.MoveRule { stoppedByInterveningPieces } steps ->
-            moveFromMovementRuleHelp thePiece startingSquare steps
-
-        Piece.CaptureRule { stoppedByInterveningPieces } steps ->
-            moveFromMovementRuleHelp thePiece startingSquare steps
-
-
-moveFromMovementRuleHelp : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
-moveFromMovementRuleHelp thePiece startingSquare steps =
-    List.foldl
-        (\step maybeSquare ->
-            Maybe.andThen (Square.applyStep step) maybeSquare
-        )
-        (Just startingSquare)
-        steps
-        |> Maybe.map
-            (\endingSquare ->
-                Move thePiece
-                    { from = startingSquare
-                    , to = endingSquare
-                    }
-                    (squaresFromSteps steps startingSquare)
-            )
-
-
-squaresFromSteps : List Square.Step -> Square.Square -> List Square.Square
-squaresFromSteps steps startingSquare =
-    squaresFromStepsHelp steps startingSquare []
-
-
-squaresFromStepsHelp : List Square.Step -> Square.Square -> List Square.Square -> List Square.Square
-squaresFromStepsHelp steps startingSquare outputSquaresSoFar =
-    case steps of
-        [] ->
-            outputSquaresSoFar
-
-        head :: tail ->
-            let
-                newStartingSquare : Maybe Square.Square
-                newStartingSquare =
-                    Square.applyStep head startingSquare
-
-                newOutputSquaresSoFar : List Square.Square
-                newOutputSquaresSoFar =
-                    Maybe.map (\sq -> [ sq ] ++ outputSquaresSoFar) newStartingSquare
-                        |> Maybe.withDefault outputSquaresSoFar
-            in
-            squaresFromStepsHelp
-                tail
-                (newStartingSquare |> Maybe.withDefault startingSquare)
-                newOutputSquaresSoFar
-
-
 type Error
-    = IllegalMoveError Move IllegalMoveReason
+    = IllegalMoveError Move.Move IllegalMoveReason
 
 
 type IllegalMoveReason
     = PieceNotOnBoard
+    | MoveGoesOffBoard
     | PiecesBlockMovePath
     | NotCurrentPlayersPiece
 
 
-type Move
-    = Move Piece.Piece { from : Square.Square, to : Square.Square } (List Square.Square)
-
-
-tryMove : Move -> Position -> Position
+tryMove : Move.Move -> Position -> Position
 tryMove theMove (Position positionDetails) =
     case theMove of
-        Move piece { from, to } squaresTraveled ->
+        Move.Move piece { from, to } squaresTraveled ->
             { positionDetails
                 | pieces =
                     List.Extra.setIf
