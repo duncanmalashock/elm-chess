@@ -47,7 +47,7 @@ moveIsLegal thePosition theMove =
 validateMove : Position -> Move.Move -> ( Position, Maybe Error )
 validateMove ((Position positionDetails) as thePosition) theMove =
     case theMove of
-        Move.Move piece { from, to } squaresTraveled ->
+        Move.Move piece { from, to, capture, jumpsAllowed } squaresTraveled ->
             if Piece.player piece /= positionDetails.playerToMove then
                 ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
 
@@ -57,11 +57,23 @@ validateMove ((Position positionDetails) as thePosition) theMove =
                         ( thePosition, Just (IllegalMoveError theMove PieceNotOnBoard) )
 
                     Just square ->
-                        if squaresContainPieces (List.filterMap identity squaresTraveled) thePosition then
+                        if
+                            squaresContainPieces (List.filterMap identity squaresTraveled) thePosition
+                                && not jumpsAllowed
+                        then
                             ( thePosition, Just (IllegalMoveError theMove PiecesBlockMovePath) )
 
                         else if moveGoesOffBoard squaresTraveled then
                             ( thePosition, Just (IllegalMoveError theMove MoveGoesOffBoard) )
+
+                        else if capture && (pieceAt to thePosition == Nothing) then
+                            ( thePosition, Just (IllegalMoveError theMove CaptureMoveHasNoTarget) )
+
+                        else if not capture && (pieceAt to thePosition /= Nothing) then
+                            ( thePosition, Just (IllegalMoveError theMove NonCaptureMoveLandsOnPiece) )
+
+                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just positionDetails.playerToMove then
+                            ( thePosition, Just (IllegalMoveError theMove MoveLandsOnPlayersOwnPiece) )
 
                         else
                             ( thePosition, Nothing )
@@ -94,6 +106,9 @@ type IllegalMoveReason
     | MoveGoesOffBoard
     | PiecesBlockMovePath
     | NotCurrentPlayersPiece
+    | CaptureMoveHasNoTarget
+    | NonCaptureMoveLandsOnPiece
+    | MoveLandsOnPlayersOwnPiece
 
 
 tryMove : Move.Move -> Position -> Position

@@ -10,7 +10,7 @@ import Square
 
 
 type Move
-    = Move Piece.Piece { from : Square.Square, to : Square.Square } (List (Maybe Square.Square))
+    = Move Piece.Piece { from : Square.Square, to : Square.Square, capture : Bool, jumpsAllowed : Bool } (List (Maybe Square.Square))
 
 
 piece : Move -> Piece.Piece
@@ -46,14 +46,14 @@ moveFromMovementRule : Piece.Piece -> Square.Square -> Piece.MovementRule -> May
 moveFromMovementRule thePiece startingSquare movementRule =
     case movementRule of
         Piece.MoveRule { stoppedByInterveningPieces } steps ->
-            moveFromMovementRuleHelp thePiece startingSquare steps
+            moveFromMovementRuleHelp thePiece startingSquare { capture = False, stoppedByInterveningPieces = stoppedByInterveningPieces } steps
 
         Piece.CaptureRule { stoppedByInterveningPieces } steps ->
-            moveFromMovementRuleHelp thePiece startingSquare steps
+            moveFromMovementRuleHelp thePiece startingSquare { capture = True, stoppedByInterveningPieces = stoppedByInterveningPieces } steps
 
 
-moveFromMovementRuleHelp : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
-moveFromMovementRuleHelp thePiece startingSquare steps =
+moveFromMovementRuleHelp : Piece.Piece -> Square.Square -> { capture : Bool, stoppedByInterveningPieces : Bool } -> List Square.Step -> Maybe Move
+moveFromMovementRuleHelp thePiece startingSquare { capture, stoppedByInterveningPieces } steps =
     List.foldl
         (\step maybeSquare ->
             Maybe.andThen (Square.applyStep step) maybeSquare
@@ -65,6 +65,8 @@ moveFromMovementRuleHelp thePiece startingSquare steps =
                 Move thePiece
                     { from = startingSquare
                     , to = endingSquare
+                    , capture = capture
+                    , jumpsAllowed = not stoppedByInterveningPieces
                     }
                     (squaresFromSteps steps startingSquare)
             )

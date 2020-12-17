@@ -2,6 +2,7 @@ module Test.Position exposing (..)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
+import Move
 import Piece
 import Player
 import Position
