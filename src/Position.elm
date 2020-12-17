@@ -1,9 +1,13 @@
 module Position exposing
-    ( defaultSetup
+    ( Error(..)
+    , IllegalMoveReason(..)
+    , defaultSetup
     , init
+    , lastError
     , legalMoves
+    , pieceAt
+    , play
     , toString
-    , tryMove
     )
 
 import List.Extra
@@ -30,53 +34,114 @@ type alias PositionDetails =
     }
 
 
+play : { from : Square.Square, to : Square.Square } -> Position -> Position
+play { from, to } ((Position positionDetails) as thePosition) =
+    case pieceAt from thePosition of
+        Nothing ->
+            { positionDetails
+                | error =
+                    Just <|
+                        IllegalMoveError <|
+                            NoPieceFoundAtSquare from
+            }
+                |> Position
+
+        Just piece ->
+            case findInAllMoves { from = from, to = to } thePosition of
+                Nothing ->
+                    { positionDetails
+                        | error =
+                            Just <|
+                                IllegalMoveError <|
+                                    ViolatesMovementRulesOfPiece (Piece.pieceType piece)
+                    }
+                        |> Position
+
+                Just move ->
+                    updatePosition move thePosition
+
+
+updatePosition : Move.Move -> Position -> Position
+updatePosition theMove ((Position positionDetails) as thePosition) =
+    case validateMove thePosition theMove of
+        Nothing ->
+            case theMove of
+                Move.Move piece { from, to } _ ->
+                    { positionDetails
+                        | pieces =
+                            List.Extra.setIf
+                                (Piece.isAtSquare from)
+                                (Piece.setSquare to piece)
+                                positionDetails.pieces
+                        , error = Nothing
+                        , playerToMove =
+                            Player.opponent positionDetails.playerToMove
+                    }
+                        |> Position
+
+        Just error ->
+            { positionDetails
+                | error =
+                    Just error
+            }
+                |> Position
+
+
+lastError : Position -> Maybe Error
+lastError ((Position positionDetails) as thePosition) =
+    positionDetails.error
+
+
+findInAllMoves : { from : Square.Square, to : Square.Square } -> Position -> Maybe Move.Move
+findInAllMoves { from, to } ((Position positionDetails) as thePosition) =
+    List.concatMap Move.movesForPiece positionDetails.pieces
+        |> List.filter
+            (\move ->
+                (Move.to move == to)
+                    && (Move.from move == from)
+            )
+        |> List.head
+
+
 legalMoves : Position -> List Move.Move
-legalMoves ((Position details) as thePosition) =
-    List.concatMap Move.movesForPiece details.pieces
-        |> List.filter (moveIsLegal thePosition)
+legalMoves ((Position positionDetails) as thePosition) =
+    List.concatMap Move.movesForPiece positionDetails.pieces
+        |> List.filter (\move -> validateMove thePosition move == Nothing)
 
 
-moveIsLegal : Position -> Move.Move -> Bool
-moveIsLegal thePosition theMove =
-    validateMove thePosition theMove
-        |> (\( _, maybeError ) ->
-                maybeError == Nothing
-           )
-
-
-validateMove : Position -> Move.Move -> ( Position, Maybe Error )
+validateMove : Position -> Move.Move -> Maybe Error
 validateMove ((Position positionDetails) as thePosition) theMove =
     case theMove of
         Move.Move piece { from, to, capture, jumpsAllowed } squaresTraveled ->
             if Piece.player piece /= positionDetails.playerToMove then
-                ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
+                Just (IllegalMoveError NotCurrentPlayersPiece)
 
             else
                 case Piece.square piece of
                     Nothing ->
-                        ( thePosition, Just (IllegalMoveError theMove PieceNotOnBoard) )
+                        Just (IllegalMoveError PieceNotOnBoard)
 
                     Just square ->
-                        if
+                        if moveGoesOffBoard squaresTraveled then
+                            Just (IllegalMoveError MoveGoesOffBoard)
+
+                        else if capture && (pieceAt to thePosition == Nothing) then
+                            Just (IllegalMoveError CaptureMoveHasNoTarget)
+
+                        else if not capture && (pieceAt to thePosition /= Nothing) then
+                            Just (IllegalMoveError NonCaptureMoveLandsOnPiece)
+
+                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just positionDetails.playerToMove then
+                            Just (IllegalMoveError MoveLandsOnPlayersOwnPiece)
+
+                        else if
                             squaresContainPieces (List.filterMap identity squaresTraveled) thePosition
                                 && not jumpsAllowed
                         then
-                            ( thePosition, Just (IllegalMoveError theMove PiecesBlockMovePath) )
-
-                        else if moveGoesOffBoard squaresTraveled then
-                            ( thePosition, Just (IllegalMoveError theMove MoveGoesOffBoard) )
-
-                        else if capture && (pieceAt to thePosition == Nothing) then
-                            ( thePosition, Just (IllegalMoveError theMove CaptureMoveHasNoTarget) )
-
-                        else if not capture && (pieceAt to thePosition /= Nothing) then
-                            ( thePosition, Just (IllegalMoveError theMove NonCaptureMoveLandsOnPiece) )
-
-                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just positionDetails.playerToMove then
-                            ( thePosition, Just (IllegalMoveError theMove MoveLandsOnPlayersOwnPiece) )
+                            Just (IllegalMoveError PiecesBlockMovePath)
 
                         else
-                            ( thePosition, Nothing )
+                            Nothing
 
 
 moveGoesOffBoard : List (Maybe Square.Square) -> Bool
@@ -98,7 +163,7 @@ squaresContainPieces squares thePosition =
 
 
 type Error
-    = IllegalMoveError Move.Move IllegalMoveReason
+    = IllegalMoveError IllegalMoveReason
 
 
 type IllegalMoveReason
@@ -109,20 +174,8 @@ type IllegalMoveReason
     | CaptureMoveHasNoTarget
     | NonCaptureMoveLandsOnPiece
     | MoveLandsOnPlayersOwnPiece
-
-
-tryMove : Move.Move -> Position -> Position
-tryMove theMove (Position positionDetails) =
-    case theMove of
-        Move.Move piece { from, to } squaresTraveled ->
-            { positionDetails
-                | pieces =
-                    List.Extra.setIf
-                        (Piece.isAtSquare from)
-                        (Piece.setSquare to piece)
-                        positionDetails.pieces
-            }
-                |> Position
+    | NoPieceFoundAtSquare Square.Square
+    | ViolatesMovementRulesOfPiece Piece.PieceType
 
 
 toString : Position -> String

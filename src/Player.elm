@@ -1,5 +1,6 @@
 module Player exposing
     ( Player(..)
+    , opponent
     , playerToInt
     )
 
@@ -7,6 +8,16 @@ module Player exposing
 type Player
     = White
     | Black
+
+
+opponent : Player -> Player
+opponent player =
+    case player of
+        White ->
+            Black
+
+        Black ->
+            White
 
 
 playerToInt : Player -> Int

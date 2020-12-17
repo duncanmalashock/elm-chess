@@ -1,7 +1,9 @@
 module Move exposing
     ( Move(..)
+    , from
     , movesForPiece
     , piece
+    , to
     , toString
     )
 
@@ -20,14 +22,24 @@ piece move =
             thePiece
 
 
+to : Move -> Square.Square
+to (Move _ moveDetails _) =
+    moveDetails.to
+
+
+from : Move -> Square.Square
+from (Move _ moveDetails _) =
+    moveDetails.from
+
+
 toString : Move -> String
 toString theMove =
     case theMove of
-        Move thePiece { from, to } squaresTraveled ->
+        Move thePiece moveDetails squaresTraveled ->
             Piece.toString thePiece
-                ++ Square.toString from
+                ++ Square.toString moveDetails.from
                 ++ "-"
-                ++ Square.toString to
+                ++ Square.toString moveDetails.to
 
 
 movesForPiece : Piece.Piece -> List Move
