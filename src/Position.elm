@@ -9,6 +9,7 @@ module Position exposing
     )
 
 import List.Extra
+import Maybe.Extra
 import Piece
 import Player
 import Set.Any
@@ -52,7 +53,28 @@ validateMove ((Position positionDetails) as thePosition) theMove =
                 ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
 
             else
-                ( thePosition, Nothing )
+                case Piece.square piece of
+                    Just square ->
+                        if squaresContainPieces (squaresFromSteps steps square) thePosition then
+                            ( thePosition, Just (IllegalMoveError theMove PiecesBlockMovePath) )
+
+                        else
+                            ( thePosition, Nothing )
+
+                    Nothing ->
+                        ( thePosition, Just (IllegalMoveError theMove PieceNotOnBoard) )
+
+
+squaresContainPieces : List Square.Square -> Position -> Bool
+squaresContainPieces squares thePosition =
+    List.filter
+        (\s ->
+            pieceAt s thePosition
+                |> Maybe.Extra.isJust
+        )
+        squares
+        |> List.isEmpty
+        |> not
 
 
 moveToString : Move -> String
@@ -87,6 +109,34 @@ moveFromMovementRule thePiece startingSquare movementRule =
             applySteps thePiece startingSquare steps
 
 
+squaresFromSteps : List Square.Step -> Square.Square -> List Square.Square
+squaresFromSteps steps startingSquare =
+    squaresFromStepsHelp steps startingSquare []
+
+
+squaresFromStepsHelp : List Square.Step -> Square.Square -> List Square.Square -> List Square.Square
+squaresFromStepsHelp steps startingSquare outputSquaresSoFar =
+    case steps of
+        [] ->
+            outputSquaresSoFar
+
+        head :: tail ->
+            let
+                newStartingSquare : Maybe Square.Square
+                newStartingSquare =
+                    Square.applyStep head startingSquare
+
+                newOutputSquaresSoFar : List Square.Square
+                newOutputSquaresSoFar =
+                    Maybe.map (\sq -> [ sq ] ++ outputSquaresSoFar) newStartingSquare
+                        |> Maybe.withDefault outputSquaresSoFar
+            in
+            squaresFromStepsHelp
+                tail
+                (newStartingSquare |> Maybe.withDefault startingSquare)
+                newOutputSquaresSoFar
+
+
 applySteps : Piece.Piece -> Square.Square -> List Square.Step -> Maybe Move
 applySteps thePiece startingSquare steps =
     List.foldl
@@ -110,10 +160,8 @@ type Error
 
 
 type IllegalMoveReason
-    = LeavesKingInCheck
-    | PlacesKingInCheck
-    | IncorrectPieceMovement
-    | IncorrectPieceSpecified
+    = PieceNotOnBoard
+    | PiecesBlockMovePath
     | NotCurrentPlayersPiece
 
 
