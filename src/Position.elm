@@ -185,7 +185,7 @@ toString ((Position positionDetails) as thePosition) =
             List.map
                 (\square ->
                     pieceAt square thePosition
-                        |> Maybe.map Piece.toString
+                        |> Maybe.map Piece.toSymbol
                         |> Maybe.withDefault " "
                 )
                 (Square.allOnRank rank)

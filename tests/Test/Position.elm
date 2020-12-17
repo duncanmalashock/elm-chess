@@ -135,6 +135,7 @@ suite =
                                 |> Position.play { from = Square.e7, to = Square.e5 }
                                 |> Position.play { from = Square.g1, to = Square.f3 }
                                 |> Position.play { from = Square.b8, to = Square.c6 }
+                                |> Position.play { from = Square.f1, to = Square.b5 }
                                 |> Position.lastError
                     in
                     Expect.equal expected result

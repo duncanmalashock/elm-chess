@@ -15,6 +15,7 @@ module Piece exposing
     , setSquare
     , square
     , toString
+    , toSymbol
     )
 
 import Player
