@@ -46,7 +46,13 @@ moveIsLegal thePosition theMove =
 
 validateMove : Position -> Move -> ( Position, Maybe Error )
 validateMove ((Position positionDetails) as thePosition) theMove =
-    ( thePosition, Nothing )
+    case theMove of
+        Move piece record steps ->
+            if Piece.player piece /= positionDetails.playerToMove then
+                ( thePosition, Just (IllegalMoveError theMove NotCurrentPlayersPiece) )
+
+            else
+                ( thePosition, Nothing )
 
 
 moveToString : Move -> String
