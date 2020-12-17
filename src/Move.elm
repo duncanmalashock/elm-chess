@@ -1,5 +1,6 @@
 module Move exposing
     ( Move(..)
+    , capturing
     , from
     , movesForPiece
     , piece
@@ -30,6 +31,13 @@ to (Move _ moveDetails _) =
 from : Move -> Square.Square
 from (Move _ moveDetails _) =
     moveDetails.from
+
+
+capturing : Move -> Bool
+capturing move =
+    case move of
+        Move _ { capture } _ ->
+            capture
 
 
 toString : Move -> String

@@ -1,7 +1,9 @@
 module Position exposing
     ( Error(..)
     , IllegalMoveReason(..)
+    , attackers
     , defaultSetup
+    , defenders
     , init
     , lastError
     , legalMoves
@@ -94,11 +96,22 @@ lastError ((Position positionDetails) as thePosition) =
 
 findInAllMoves : { from : Square.Square, to : Square.Square } -> Position -> Maybe Move.Move
 findInAllMoves { from, to } ((Position positionDetails) as thePosition) =
+    let
+        isCapturing : Bool
+        isCapturing =
+            case pieceAt to thePosition of
+                Just pieceAtDestination ->
+                    True
+
+                Nothing ->
+                    False
+    in
     List.concatMap Move.movesForPiece positionDetails.pieces
         |> List.filter
             (\move ->
                 (Move.to move == to)
                     && (Move.from move == from)
+                    && (Move.capturing move == isCapturing)
             )
         |> List.head
 
@@ -106,14 +119,17 @@ findInAllMoves { from, to } ((Position positionDetails) as thePosition) =
 legalMoves : { ignoreTurn : Bool } -> Position -> List Move.Move
 legalMoves { ignoreTurn } ((Position positionDetails) as thePosition) =
     List.concatMap Move.movesForPiece positionDetails.pieces
-        |> List.filter (\move -> validateMove { ignoreTurn = ignoreTurn } thePosition move == Nothing)
+        |> List.filter
+            (\move ->
+                validateMove { ignoreTurn = ignoreTurn } thePosition move == Nothing
+            )
 
 
 validateMove : { ignoreTurn : Bool } -> Position -> Move.Move -> Maybe Error
 validateMove { ignoreTurn } ((Position positionDetails) as thePosition) theMove =
     case theMove of
         Move.Move piece { from, to, capture, jumpsAllowed } squaresTraveled ->
-            if (Piece.player piece /= positionDetails.playerToMove) && not ignoreTurn then
+            if Piece.player piece /= positionDetails.playerToMove && (ignoreTurn == False) then
                 Just (IllegalMoveError NotCurrentPlayersPiece)
 
             else
@@ -131,7 +147,7 @@ validateMove { ignoreTurn } ((Position positionDetails) as thePosition) theMove 
                         else if not capture && (pieceAt to thePosition /= Nothing) then
                             Just (IllegalMoveError NonCaptureMoveLandsOnPiece)
 
-                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just positionDetails.playerToMove then
+                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just (Piece.player piece) then
                             Just (IllegalMoveError MoveLandsOnPlayersOwnPiece)
 
                         else if
@@ -160,6 +176,28 @@ squaresContainPieces squares thePosition =
         squares
         |> List.isEmpty
         |> not
+
+
+attackers : Player.Player -> Square.Square -> Position -> List Piece.Piece
+attackers player theSquare ((Position positionDetails) as thePosition) =
+    legalMoves { ignoreTurn = True } thePosition
+        |> List.filter
+            (\move ->
+                (Move.to move == theSquare)
+                    && (Piece.player (Move.piece move) /= player)
+            )
+        |> List.map Move.piece
+
+
+defenders : Player.Player -> Square.Square -> Position -> List Piece.Piece
+defenders player theSquare ((Position positionDetails) as thePosition) =
+    legalMoves { ignoreTurn = True } thePosition
+        |> List.filter
+            (\move ->
+                (Move.to move == theSquare)
+                    && (Piece.player (Move.piece move) == player)
+            )
+        |> List.map Move.piece
 
 
 type Error

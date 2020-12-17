@@ -1,7 +1,9 @@
 module Test.Position exposing (..)
 
 import Expect exposing (Expectation)
+import Move
 import Piece
+import Player
 import Position
 import Square
 import Test exposing (..)
@@ -18,11 +20,7 @@ suite =
                             20
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.legalMoves { ignoreTurn = False }
                                 |> List.length
                     in
@@ -36,11 +34,7 @@ suite =
                             Nothing
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.lastError
                     in
@@ -54,11 +48,7 @@ suite =
                                     Position.ViolatesMovementRulesOfPiece Piece.Pawn
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e5 }
                                 |> Position.lastError
                     in
@@ -72,11 +62,7 @@ suite =
                                     Position.PiecesBlockMovePath
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.h1, to = Square.h3 }
                                 |> Position.lastError
                     in
@@ -87,14 +73,10 @@ suite =
                         expected =
                             Just <|
                                 Position.IllegalMoveError <|
-                                    Position.CaptureMoveHasNoTarget
+                                    Position.ViolatesMovementRulesOfPiece Piece.Pawn
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.f2, to = Square.g3 }
                                 |> Position.lastError
                     in
@@ -105,14 +87,10 @@ suite =
                         expected =
                             Just <|
                                 Position.IllegalMoveError <|
-                                    Position.NonCaptureMoveLandsOnPiece
+                                    Position.ViolatesMovementRulesOfPiece Piece.Pawn
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.play { from = Square.e7, to = Square.e5 }
                                 |> Position.play { from = Square.e4, to = Square.e5 }
@@ -126,11 +104,7 @@ suite =
                             Nothing
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.play { from = Square.e7, to = Square.e5 }
                                 |> Position.play { from = Square.g1, to = Square.f3 }
@@ -148,14 +122,27 @@ suite =
                                     Position.NotCurrentPlayersPiece
 
                         result =
-                            let
-                                setup =
-                                    Position.init Position.defaultSetup
-                            in
-                            setup
+                            Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.play { from = Square.d2, to = Square.d4 }
                                 |> Position.lastError
+                    in
+                    Expect.equal expected result
+            ]
+        , describe "attackers"
+            [ test "e5 should be attacked by f3 in move 2 of the Ruy Lopez" <|
+                \_ ->
+                    let
+                        expected =
+                            [ Piece.knight Player.White Square.f3
+                            ]
+
+                        result =
+                            Position.init Position.defaultSetup
+                                |> Position.play { from = Square.e2, to = Square.e4 }
+                                |> Position.play { from = Square.e7, to = Square.e5 }
+                                |> Position.play { from = Square.g1, to = Square.f3 }
+                                |> Position.attackers Player.Black Square.e5
                     in
                     Expect.equal expected result
             ]
