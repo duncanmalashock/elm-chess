@@ -4,6 +4,11 @@
   "main": "index.html",
   "license": "MIT",
   "scripts": {
-    "build": "elm make src/Main.elm --output=assets/main.js --optimize"
+    "build": "elm make src/Main.elm --output=assets/main.js --optimize",
+    "watch": "chokidar '**/*.elm' -c 'elm make src/Main.elm --output assets/main.js' --initial"
+  },
+  "dependencies": {
+    "chokidar": "^3.4.3",
+    "chokidar-cli": "^2.1.0"
   }
 }

@@ -1,6 +1,7 @@
 module Position exposing
     ( Error(..)
     , IllegalMoveReason(..)
+    , Position
     , attackers
     , defaultSetup
     , defenders
