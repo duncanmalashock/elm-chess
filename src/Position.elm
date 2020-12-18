@@ -147,7 +147,7 @@ validateMove { ignoreTurn } ((Position positionDetails) as thePosition) theMove 
                         else if not capture && (pieceAt to thePosition /= Nothing) then
                             Just (IllegalMoveError NonCaptureMoveLandsOnPiece)
 
-                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just (Piece.player piece) then
+                        else if Maybe.map Piece.player (pieceAt to thePosition) == Just (Piece.player piece) && (ignoreTurn == False) then
                             Just (IllegalMoveError MoveLandsOnPlayersOwnPiece)
 
                         else if
@@ -198,6 +198,18 @@ defenders player theSquare ((Position positionDetails) as thePosition) =
                     && (Piece.player (Move.piece move) == player)
             )
         |> List.map Move.piece
+
+
+
+--debugMoves : List Move.Move -> List Move.Move
+--debugMoves moves =
+--    let
+--        _ =
+--            moves
+--                |> List.map Move.toString
+--                |> Debug.log "Moves"
+--    in
+--    moves
 
 
 type Error

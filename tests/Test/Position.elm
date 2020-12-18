@@ -130,7 +130,7 @@ suite =
                     Expect.equal expected result
             ]
         , describe "attackers"
-            [ test "e5 should be attacked by f3 in move 2 of the Ruy Lopez" <|
+            [ test "e5 should be attacked by f3 after move 2 of the Ruy Lopez" <|
                 \_ ->
                     let
                         expected =
@@ -142,23 +142,25 @@ suite =
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.play { from = Square.e7, to = Square.e5 }
                                 |> Position.play { from = Square.g1, to = Square.f3 }
+                                |> Position.play { from = Square.b8, to = Square.c6 }
                                 |> Position.attackers Player.Black Square.e5
                     in
                     Expect.equal expected result
             ]
         , describe "defenders"
-            [ test "e5 should be defended by c6 in move 2 of the Ruy Lopez" <|
+            [ test "e5 should be defended by c6 after move 2 of the Ruy Lopez" <|
                 \_ ->
                     let
                         expected =
-                            []
+                            [ Piece.knight Player.Black Square.c6
+                            ]
 
                         result =
                             Position.init Position.defaultSetup
                                 |> Position.play { from = Square.e2, to = Square.e4 }
                                 |> Position.play { from = Square.e7, to = Square.e5 }
                                 |> Position.play { from = Square.g1, to = Square.f3 }
-                                |> Position.play { from = Square.b7, to = Square.c6 }
+                                |> Position.play { from = Square.b8, to = Square.c6 }
                                 |> Position.defenders Player.Black Square.e5
                     in
                     Expect.equal expected result
