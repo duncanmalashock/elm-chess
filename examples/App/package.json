@@ -1,0 +1,9 @@
+{
+  "name": "App",
+  "version": "1.0.0",
+  "main": "index.html",
+  "license": "MIT",
+  "scripts": {
+    "build": "elm make src/Main.elm --output=assets/main.js --optimize"
+  }
+}

@@ -9,3 +9,6 @@ node_modules
 
 # Desktop Services Store on macOS
 .DS_Store
+
+# Compiled Elm JS in examples directory
+examples/App/assets/main.js
