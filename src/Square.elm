@@ -14,7 +14,7 @@ module Square exposing
     , Step
     , north, south, east, west
     , northeast, northwest, southeast, southwest
-    , allFiles, allOnFile, allOnRank, allRanks, applyStep, toString
+    , Color(..), File(..), Rank(..), allFiles, allOnFile, allOnRank, allRanks, applyStep, color, toString
     )
 
 {-|
@@ -40,6 +40,15 @@ module Square exposing
 -}
 
 
+type Square
+    = Square File Rank
+
+
+square : File -> Rank -> Square
+square file rank =
+    Square file rank
+
+
 type Step
     = North
     | South
@@ -49,6 +58,76 @@ type Step
     | Northeast
     | Southwest
     | Southeast
+
+
+type Color
+    = White
+    | Black
+
+
+color : Square -> Color
+color (Square theFile theRank) =
+    if modBy 2 (rankToInt theRank + fileToInt theFile) == 0 then
+        Black
+
+    else
+        White
+
+
+rankToInt : Rank -> Int
+rankToInt theRank =
+    case theRank of
+        Rank1 ->
+            0
+
+        Rank2 ->
+            1
+
+        Rank3 ->
+            2
+
+        Rank4 ->
+            3
+
+        Rank5 ->
+            4
+
+        Rank6 ->
+            5
+
+        Rank7 ->
+            6
+
+        Rank8 ->
+            7
+
+
+fileToInt : File -> Int
+fileToInt theFile =
+    case theFile of
+        FileA ->
+            0
+
+        FileB ->
+            1
+
+        FileC ->
+            2
+
+        FileD ->
+            3
+
+        FileE ->
+            4
+
+        FileF ->
+            5
+
+        FileG ->
+            6
+
+        FileH ->
+            7
 
 
 allFiles : List File
@@ -460,15 +539,6 @@ seven =
 eight : Rank
 eight =
     Rank8
-
-
-type Square
-    = Square File Rank
-
-
-square : File -> Rank -> Square
-square file rank =
-    Square file rank
 
 
 a1 : Square

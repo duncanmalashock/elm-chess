@@ -3,6 +3,9 @@ module Main exposing (main)
 import Browser
 import Html
 import Html.Attributes
+import Html.Events
+import Piece
+import Player
 import Position
 import Square
 
@@ -24,23 +27,24 @@ type alias Flags =
 type alias Model =
     { position : Position.Position
     , selectedSquare : Maybe Square.Square
+    , boardPOV : Player.Player
     }
 
 
 type Msg
-    = NoOp
+    = SquareClicked Square.Square
+    | ClickedFlipBoard
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { position =
+    let
+        initialPosition =
             Position.init Position.defaultSetup
-                |> Position.play { from = Square.e2, to = Square.e4 }
-                |> Position.play { from = Square.e7, to = Square.e5 }
-                |> Position.play { from = Square.g1, to = Square.f3 }
-                |> Position.play { from = Square.b8, to = Square.c6 }
-                |> Position.play { from = Square.f1, to = Square.b5 }
+    in
+    ( { position = initialPosition
       , selectedSquare = Nothing
+      , boardPOV = Player.White
       }
     , Cmd.none
     )
@@ -53,15 +57,81 @@ view model =
         [ Html.div
             [ Html.Attributes.style "white-space" "pre"
             , Html.Attributes.style "line-height" "1.0"
-            , Html.Attributes.style "letter-spacing" "10px"
             , Html.Attributes.style "font-size" "48px"
             , Html.Attributes.style "font-family" "Courier New"
             ]
-            [ Html.text (Position.toString model.position)
+            [ viewBoard model
             ]
-        , Html.text (errorToString (Position.lastError model.position))
+        , Html.div []
+            [ Html.text (playerToString (Position.playerToMove model.position)) ]
+        , Html.div []
+            [ Html.text (errorToString (Position.lastError model.position)) ]
+        , Html.button
+            [ Html.Events.onClick ClickedFlipBoard
+            ]
+            [ Html.text "Flip board" ]
         ]
     }
+
+
+playerToString : Player.Player -> String
+playerToString player =
+    case player of
+        Player.White ->
+            "White to move"
+
+        Player.Black ->
+            "Black to move"
+
+
+viewBoard : Model -> Html.Html Msg
+viewBoard model =
+    Position.view
+        { viewSquare = viewSquare model.selectedSquare
+        , viewRank = viewRank
+        , viewAllRanks = viewAllRanks
+        }
+        model.boardPOV
+        model.position
+
+
+viewSquare : Maybe Square.Square -> { square : Square.Square, piece : Maybe Piece.Piece } -> Html.Html Msg
+viewSquare maybeSelectedSquare { square, piece } =
+    Html.span
+        [ Html.Attributes.style "background-color"
+            (if maybeSelectedSquare == Just square then
+                "green"
+
+             else
+                case Square.color square of
+                    Square.White ->
+                        "white"
+
+                    Square.Black ->
+                        "#d4d4d4"
+            )
+        , Html.Attributes.style "text-align" "center"
+        , Html.Attributes.style "display" "inline-block"
+        , Html.Attributes.style "width" "50px"
+        , Html.Attributes.style "height" "50px"
+        , Html.Events.onClick (SquareClicked square)
+        ]
+        [ Html.text
+            (piece
+                |> Maybe.map Piece.toSymbol
+                |> Maybe.withDefault " "
+            )
+        ]
+
+
+viewRank : List (Html.Html msg) -> Html.Html msg
+viewRank squaresView =
+    Html.div [] squaresView
+
+
+viewAllRanks : List (Html.Html msg) -> Html.Html msg
+viewAllRanks ranksView =
+    Html.div [] ranksView
 
 
 errorToString : Maybe Position.Error -> String
@@ -105,8 +175,34 @@ errorToString maybeError =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
+        SquareClicked clickedSquare ->
+            case model.selectedSquare of
+                Nothing ->
+                    ( { model
+                        | selectedSquare = Just clickedSquare
+                      }
+                    , Cmd.none
+                    )
+
+                Just selectedSquare ->
+                    ( { model
+                        | selectedSquare = Nothing
+                        , position =
+                            model.position
+                                |> Position.play
+                                    { from = selectedSquare
+                                    , to = clickedSquare
+                                    }
+                      }
+                    , Cmd.none
+                    )
+
+        ClickedFlipBoard ->
+            ( { model
+                | boardPOV = Player.opponent model.boardPOV
+              }
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub Msg

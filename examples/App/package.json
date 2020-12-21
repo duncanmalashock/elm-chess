@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "elm make src/Main.elm --output=assets/main.js --optimize",
-    "watch": "chokidar '**/*.elm' -c 'elm make src/Main.elm --output assets/main.js' --initial"
+    "watch": "chokidar '**/*.elm' '../../src/*.elm' -c 'elm make src/Main.elm --debug --output assets/main.js' --initial"
   },
   "dependencies": {
     "chokidar": "^3.4.3",

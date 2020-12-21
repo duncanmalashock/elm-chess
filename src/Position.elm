@@ -10,7 +10,9 @@ module Position exposing
     , legalMoves
     , pieceAt
     , play
+    , playerToMove
     , toString
+    , view
     )
 
 import List.Extra
@@ -35,6 +37,58 @@ type alias PositionDetails =
     , castlingRights : Set.Any.AnySet Int Player.Player
     , error : Maybe Error
     }
+
+
+playerToMove : Position -> Player.Player
+playerToMove (Position positionDetails) =
+    positionDetails.playerToMove
+
+
+type alias ViewConfig viewType =
+    { viewSquare :
+        { piece : Maybe Piece.Piece, square : Square.Square } -> viewType
+    , viewRank :
+        List viewType -> viewType
+    , viewAllRanks :
+        List viewType -> viewType
+    }
+
+
+view : ViewConfig viewType -> Player.Player -> Position -> viewType
+view config playerPOV thePosition =
+    let
+        ( ranks, files ) =
+            case playerPOV of
+                Player.White ->
+                    ( Square.allRanks
+                        |> List.reverse
+                    , Square.allFiles
+                    )
+
+                Player.Black ->
+                    ( Square.allRanks
+                    , Square.allFiles
+                        |> List.reverse
+                    )
+    in
+    List.map
+        (\rank ->
+            List.map
+                (\file ->
+                    let
+                        theSquare =
+                            Square.square file rank
+                    in
+                    config.viewSquare
+                        { square = theSquare
+                        , piece = pieceAt theSquare thePosition
+                        }
+                )
+                files
+                |> config.viewRank
+        )
+        ranks
+        |> config.viewAllRanks
 
 
 play : { from : Square.Square, to : Square.Square } -> Position -> Position
@@ -313,8 +367,8 @@ initPieces player =
     [ Piece.rook player (Square.square Square.a rank)
     , Piece.knight player (Square.square Square.b rank)
     , Piece.bishop player (Square.square Square.c rank)
-    , Piece.king player (Square.square Square.d rank)
-    , Piece.queen player (Square.square Square.e rank)
+    , Piece.queen player (Square.square Square.d rank)
+    , Piece.king player (Square.square Square.e rank)
     , Piece.bishop player (Square.square Square.f rank)
     , Piece.knight player (Square.square Square.g rank)
     , Piece.rook player (Square.square Square.h rank)
